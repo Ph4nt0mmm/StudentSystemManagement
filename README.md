@@ -28,6 +28,7 @@ Hệ thống quản lý sinh viên là một ứng dụng console được xây 
 -	Xem lịch học
 -	Quản lý bài tập (xem, nộp bài, xem trạng thái)
 -	Xem và chỉnh sửa thông tin cá nhân
+
 🚀 Hướng dẫn sử dụng
 1. Khởi động hệ thống
 -	Chạy file main.py
