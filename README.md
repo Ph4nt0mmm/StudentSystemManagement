@@ -91,6 +91,8 @@ Hệ thống quản lý sinh viên là một ứng dụng console được xây 
 -	Định dạng: Lưu toàn bộ file dữ liệu
 -	Thông tin: Kèm metadata về thời gian sao lưu
 
-- Phiên bản: 4.0
-- Cập nhật: Tháng 1, 2024
-- Tác giả: Student Management System Team
+
+
+Phiên bản: 4.0
+Cập nhật: Tháng 1, 2024
+Tác giả: Student Management System Team
