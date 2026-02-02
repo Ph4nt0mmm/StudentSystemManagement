@@ -79,6 +79,7 @@ Hệ thống quản lý sinh viên là một ứng dụng console được xây 
 -	Điểm trung bình theo môn
 -	Phân loại điểm (Xuất sắc, Giỏi, Khá, ...)
 -	Điểm cao nhất/thấp nhất
+
 🔒 Bảo mật và sao lưu
   Tính năng bảo mật
 -	Mật khẩu được lưu trữ dạng plaintext (có thể nâng cấp)
