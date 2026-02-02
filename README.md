@@ -5,10 +5,10 @@ Hệ thống quản lý sinh viên là một ứng dụng console được xây 
 
 ✨ Tính năng chính
 👨‍💼 Quản trị viên (Admin)
-•	Quản lý người dùng (thêm, sửa, xóa, tìm kiếm)
-•	Quản lý sinh viên
-•	Quản lý giảng viên
-•	Quản lý môn học
+-	Quản lý người dùng (thêm, sửa, xóa, tìm kiếm)
+-	Quản lý sinh viên
+-	Quản lý giảng viên
+-	Quản lý môn học
 •	Xem báo cáo thống kê
 •	Sao lưu dữ liệu
 •	Khóa/mở tài khoản người dùng
