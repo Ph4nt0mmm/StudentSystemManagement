@@ -95,7 +95,7 @@ class StudentManagementSystem:
             print("✓ Tất cả file dữ liệu đã tồn tại.")
 
     def login(self):
-        """Màn hình đăng nhập"""
+        #Màn hình đăng nhập
         self.clear_screen()
         print("\n" + "="*50)
         print("     HỆ THỐNG QUẢN LÝ SINH VIÊN")
@@ -3227,10 +3227,34 @@ class StudentManagementSystem:
         print("\n" + "=" * 50)
         print("        CHI TIẾT BÀI TẬP")
         print("=" * 50)
-        print(f"\n📘 Môn học: {a.get('course_name')}")
+        print(f"\n📘 Mã môn học: {a.get('course_id')}")
         print(f"📝 Tên bài tập: {a.get('title')}")
-        print(f"⏰ Hạn nộp: {a.get('deadline')}")
-        print(f"\n📄 Mô tả:\n{a.get('description')}")
+        print(f"📋 Loại bài tập: {a.get('assignment_type')}")
+        print(f"🏆 Điểm tối đa: {a.get('max_points')}")
+        print(f"⏰ Hạn nộp: {a.get('due_date')}")
+        print(f"👨‍🏫 Giảng viên: {a.get('created_by')}")
+        print(f"📅 Ngày tạo: {a.get('created_at')}")
+        print(f"\n📄 Mô tả: {a.get('description', 'Không có mô tả')}")
+
+        # Hiển thị thông tin nộp bài
+        submissions = a.get('submissions', [])
+        print(f"\n📤 Số bài đã nộp: {len(submissions)}")
+
+        if submissions:
+            print("\n📋 Danh sách bài nộp:")
+            for i, sub in enumerate(submissions, 1):
+                print(f"  {i}. Sinh viên: {sub.get('student_id')}")
+                print(f"     ⏱️  Thời gian nộp: {sub.get('submitted_at')}")
+                print(f"     📝 Nội dung: {sub.get('content', 'Không có nội dung')}")
+                score = sub.get('score')
+                if score is not None:
+                    print(f"     ✅ Điểm: {score}")
+                else:
+                    print("     ⏳ Chưa chấm điểm")
+                print(f"     💬 Nhận xét: {sub.get('feedback', 'Không có nhận xét')}")
+        else:
+            print("\nℹ️ Chưa có bài nộp nào")
+
         input("\nNhấn Enter để quay lại...")
 
     def student_submit_assignment(self, assignments):
@@ -3292,13 +3316,19 @@ class StudentManagementSystem:
             for sub in a.get('submissions', []):
                 if sub.get('student_id') == student_id:
                     found = True
-                    print(f"\n📘 {a.get('course_name')} - {a.get('title')}")
+                    print(f"\n📘 {a.get('course_id')} - {a.get('title')}")
+                    print(f"📋 Loại: {a.get('assignment_type')}")
+                    print(f"🏆 Điểm tối đa: {a.get('max_points')}")
+                    print(f"📅 Hạn nộp: {a.get('due_date')}")
+                    print(f"👨‍🏫 Giảng viên: {a.get('created_by')}")
                     print(f"⏰ Nộp lúc: {sub.get('submitted_at')}")
+                    print(f"📝 Nội dung nộp: {sub.get('content', 'Không có nội dung')}")
                     print(f"⭐ Điểm: {sub.get('score') if sub.get('score') is not None else 'Chưa chấm'}")
-                    print(f"💬 Nhận xét: {sub.get('feedback', 'Chưa có')}")
+                    print(f"💬 Nhận xét: {sub.get('feedback', 'Chưa có nhận xét')}")
+                    print("-" * 50)
 
         if not found:
-            print("\n📭 Bạn chưa nộp bài nào.")
+            print("\n📭 Bạn chưa nộp bài tập nào.")
 
         input("\nNhấn Enter để quay lại...")
 
@@ -3905,220 +3935,707 @@ class StudentManagementSystem:
     def manage_grades(self):
         """Quản lý điểm (Giảng viên)"""
         self.clear_screen()
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("     QUẢN LÝ ĐIỂM")
-        print("="*50)
+        print("=" * 50)
+
+        print("\n📋 LỰA CHỌN CHỨC NĂNG:")
+        print("   1. Chấm điểm bài tập theo môn học")
+        print("   2. Nhập điểm tổng kết môn học")
+        print("   3. Xem điểm của sinh viên")
+
+        try:
+            choice = input("\n👉 Chọn chức năng (1-3, hoặc 0 để hủy): ").strip()
+
+            if choice == '0':
+                print("\nĐã hủy thao tác.")
+                input("\nNhấn Enter để tiếp tục...")
+                return
+            elif choice == '1':
+                self.grade_assignments()
+            elif choice == '2':
+                self.manage_course_grades()
+            elif choice == '3':
+                self.view_student_grades()
+            else:
+                print("\n❌ Lựa chọn không hợp lệ!")
+                input("\nNhấn Enter để tiếp tục...")
+                return
+
+        except Exception as e:
+            print(f"\n❌ Đã xảy ra lỗi: {e}")
+            input("\nNhấn Enter để tiếp tục...")
+            return
+
+    def grade_assignments(self):
+        """Chấm điểm bài tập cho sinh viên"""
+        self.clear_screen()
+        print("\n" + "=" * 50)
+        print("     CHẤM ĐIỂM BÀI TẬP")
+        print("=" * 50)
 
         lecturer_id = self.current_user.get('username', '')
+        lecturer_name = f"{self.current_user.get('firstname', '')} {self.current_user.get('lastname', '')}"
 
-        # Lấy môn học của giảng viên
+        print(f"\n👨‍🏫 Giảng viên: {lecturer_name}")
+        print("-" * 50)
+
+        # 1. Lấy môn học của giảng viên
         courses = self.read_file(self.data_files['courses'])
         my_courses = [c for c in courses if c.get('lecturer_id') == lecturer_id]
 
         if not my_courses:
-            print("\nBạn chưa được phân công giảng dạy môn nào!")
-            input("\nNhấn Enter để tiếp tục...")
+            print("\n❌ Bạn chưa được phân công giảng dạy môn nào!")
+            input("\nNhấn Enter để quay lại...")
             return
 
-        print("\nDanh sách môn học của bạn:")
+        # 2. Hiển thị danh sách môn học
+        print("\n📚 DANH SÁCH MÔN HỌC:")
+        print("-" * 70)
+        print(f"{'STT':<5} {'Mã môn':<10} {'Tên môn học':<30} {'Số SV':<8}")
+        print("-" * 70)
+
         for i, course in enumerate(my_courses, 1):
-            enrolled = len(course.get('enrolled_students', []))
-            print(f"{i}. {course.get('course_code')} - {course.get('course_name')} ({enrolled} SV)")
+            course_code = course.get('course_code', 'N/A')
+            course_name = course.get('course_name', 'N/A')
+            student_count = len(course.get('enrolled_students', []))
+            print(f"{i:<5} {course_code:<10} {course_name:<30} {student_count:<8}")
 
         try:
-            choice = int(input("\nChọn môn học (số): ").strip()) - 1
-            if choice < 0 or choice >= len(my_courses):
-                print("\nLựa chọn không hợp lệ!")
-                input("\nNhấn Enter để tiếp tục...")
+            course_choice = input("\n👉 Chọn môn học (nhập số, hoặc 0 để hủy): ").strip()
+
+            if course_choice == '0':
+                print("\nĐã hủy thao tác.")
+                input("\nNhấn Enter để quay lại...")
                 return
 
-            selected_course = my_courses[choice]
+            course_idx = int(course_choice) - 1
+
+            if course_idx < 0 or course_idx >= len(my_courses):
+                print("\n❌ Lựa chọn không hợp lệ!")
+                input("\nNhấn Enter để quay lại...")
+                return
+
+            selected_course = my_courses[course_idx]
             course_id = selected_course.get('course_id')
+            course_name = selected_course.get('course_name', 'N/A')
 
-            # Lấy danh sách sinh viên
-            enrolled_students = selected_course.get('enrolled_students', [])
+            print(f"\n✅ Đã chọn môn: {course_name}")
+            print("-" * 60)
 
-            if not enrolled_students:
-                print("\nChưa có sinh viên đăng ký môn học này!")
-                input("\nNhấn Enter để tiếp tục...")
+            # 3. Lấy danh sách bài tập của môn học
+            assignments = self.read_file(self.data_files['assignments'])
+            course_assignments = [a for a in assignments
+                                  if a.get('course_id') == course_id
+                                  and a.get('created_by') == lecturer_id]
+
+            if not course_assignments:
+                print("\n❌ Chưa có bài tập nào cho môn học này!")
+                input("\nNhấn Enter để quay lại...")
                 return
 
-            all_students = self.read_file(self.data_files['student'])
-            course_students = [s for s in all_students if s.get('username') in enrolled_students]
+            # 4. Hiển thị danh sách bài tập
+            print("\n📝 DANH SÁCH BÀI TẬP:")
+            print("-" * 80)
+            print(f"{'STT':<5} {'Mã bài tập':<20} {'Tên bài tập':<25} {'Loại':<10} {'Hạn nộp':<12} {'Đã nộp':<8}")
+            print("-" * 80)
 
-            # Lấy điểm hiện tại
-            all_grades = self.read_file(self.data_files['grades'])
-            course_grades = {g.get('student_id'): g for g in all_grades
-                           if g.get('course_id') == course_id}
+            for i, assignment in enumerate(course_assignments, 1):
+                assignment_id = assignment.get('assignment_id', 'N/A')
+                title = assignment.get('title', 'N/A')
+                assignment_type = assignment.get('assignment_type', 'N/A')
+                due_date = assignment.get('due_date', 'N/A')
+                submissions = assignment.get('submissions', [])
+                submitted_count = len(submissions)
 
-            print(f"\nNhập điểm cho môn: {selected_course.get('course_name')}")
-            print("-"*80)
+                # Đếm số bài đã được chấm điểm
+                graded_count = sum(1 for sub in submissions if sub.get('score') is not None)
 
-            for student in course_students:
-                student_id = student.get('username')
-                fullname = f"{student.get('firstname')} {student.get('lastname')}"
-                std_code = student.get('std_code', 'N/A')
+                print(
+                    f"{i:<5} {assignment_id:<20} {title[:23]:<25} {assignment_type:<10} {due_date:<12} {submitted_count}/{graded_count}")
 
-                grade_record = course_grades.get(student_id, {})
-                current_total = grade_record.get('total', 0)
+            assignment_choice = input("\n👉 Chọn bài tập cần chấm điểm (nhập số, hoặc 0 để hủy): ").strip()
 
-                print(f"\nSinh viên: {fullname} ({std_code})")
-                print(f"Điểm hiện tại: {current_total:.1f}")
+            if assignment_choice == '0':
+                print("\nĐã hủy thao tác.")
+                input("\nNhấn Enter để quay lại...")
+                return
 
-                # Nhập điểm thành phần
-                try:
-                    attendance = float(input("  Điểm chuyên cần (0-10): ") or grade_record.get('attendance', 0))
-                    midterm = float(input("  Điểm giữa kỳ (0-100): ") or grade_record.get('midterm', 0))
-                    final = float(input("  Điểm cuối kỳ (0-100): ") or grade_record.get('final', 0))
+            assignment_idx = int(assignment_choice) - 1
 
-                    # Tính điểm tổng (có thể thay đổi công thức)
-                    total = attendance + (midterm * 0.3) + (final * 0.6)
+            if assignment_idx < 0 or assignment_idx >= len(course_assignments):
+                print("\n❌ Lựa chọn không hợp lệ!")
+                input("\nNhấn Enter để quay lại...")
+                return
 
-                    # Xác định điểm chữ
-                    if total >= 90:
-                        grade_letter = "A"
-                    elif total >= 80:
-                        grade_letter = "B"
-                    elif total >= 70:
-                        grade_letter = "C"
-                    elif total >= 60:
-                        grade_letter = "D"
+            selected_assignment = course_assignments[assignment_idx]
+            assignment_id = selected_assignment.get('assignment_id')
+            assignment_title = selected_assignment.get('title', 'N/A')
+            max_points = selected_assignment.get('max_points', 100.0)
+            submissions = selected_assignment.get('submissions', [])
+
+            print(f"\n✅ Đã chọn bài tập: {assignment_title}")
+            print(f"⭐ Điểm tối đa: {max_points}")
+            print(f"📤 Tổng số bài nộp: {len(submissions)}")
+            print("-" * 60)
+
+            if not submissions:
+                print("\nℹ️ Chưa có sinh viên nào nộp bài!")
+                input("\nNhấn Enter để quay lại...")
+                return
+
+            # 5. Hiển thị danh sách bài nộp chưa chấm
+            ungraded_submissions = [sub for sub in submissions if sub.get('score') is None]
+            graded_submissions = [sub for sub in submissions if sub.get('score') is not None]
+
+            print(f"\n📋 TÌNH TRẠNG CHẤM ĐIỂM:")
+            print(f"   • Đã chấm: {len(graded_submissions)} bài")
+            print(f"   • Chưa chấm: {len(ungraded_submissions)} bài")
+            print(f"   • Tổng số: {len(submissions)} bài")
+
+            if ungraded_submissions:
+                print("\n📝 BÀI NỘP CHƯA CHẤM ĐIỂM:")
+                print("-" * 80)
+                print(f"{'STT':<5} {'Mã SV':<10} {'Tên SV':<25} {'Thời gian nộp':<20} {'Nội dung':<20}")
+                print("-" * 80)
+
+                for i, sub in enumerate(ungraded_submissions, 1):
+                    student_id = sub.get('student_id', 'N/A')
+                    submitted_at = sub.get('submitted_at', 'N/A')
+                    content = sub.get('content', 'Không có nội dung')
+
+                    # Lấy thông tin sinh viên
+                    students = self.read_file(self.data_files['student'])
+                    student = next((s for s in students if s.get('username') == student_id), None)
+                    student_name = f"{student.get('firstname', '')} {student.get('lastname', '')}" if student else 'N/A'
+
+                    print(f"{i:<5} {student_id:<10} {student_name[:23]:<25} {submitted_at[:19]:<20} {content[:18]:<20}")
+
+                # 6. Chấm điểm từng bài
+                print("\n" + "=" * 60)
+                print("     CHẤM ĐIỂM BÀI NỘP")
+                print("=" * 60)
+
+                graded_count = 0
+                for i, sub in enumerate(ungraded_submissions, 1):
+                    student_id = sub.get('student_id', 'N/A')
+
+                    # Lấy thông tin sinh viên
+                    students = self.read_file(self.data_files['student'])
+                    student = next((s for s in students if s.get('username') == student_id), None)
+                    student_name = f"{student.get('firstname', '')} {student.get('lastname', '')}" if student else 'N/A'
+
+                    print(f"\n📌 Bài nộp {i}/{len(ungraded_submissions)}")
+                    print(f"👤 Sinh viên: {student_name} ({student_id})")
+                    print(f"⏰ Nộp lúc: {sub.get('submitted_at', 'N/A')}")
+                    print(f"📝 Nội dung: {sub.get('content', 'Không có nội dung')}")
+                    print(f"⭐ Điểm tối đa: {max_points}")
+                    print("-" * 40)
+
+                    while True:
+                        try:
+                            score_input = input(f"Nhập điểm (0-{max_points}, hoặc 'skip' để bỏ qua): ").strip()
+
+                            if score_input.lower() == 'skip':
+                                print(f"Đã bỏ qua bài của {student_name}")
+                                break
+
+                            score = float(score_input)
+
+                            if score < 0 or score > max_points:
+                                print(f"❌ Điểm phải từ 0 đến {max_points}!")
+                                continue
+
+                            feedback = input("Nhận xét (không bắt buộc): ").strip()
+
+                            # Cập nhật điểm
+                            sub['score'] = score
+                            sub['feedback'] = feedback if feedback else ""
+                            sub['graded_by'] = lecturer_id
+                            sub['graded_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                            graded_count += 1
+                            print(f"✅ Đã chấm điểm cho {student_name}: {score}/{max_points}")
+                            break
+
+                        except ValueError:
+                            print("❌ Vui lòng nhập số hợp lệ!")
+
+                # 7. Cập nhật vào file assignments
+                if graded_count > 0:
+                    # Tìm và cập nhật bài tập trong danh sách
+                    for i, a in enumerate(assignments):
+                        if a.get('assignment_id') == assignment_id:
+                            assignments[i] = selected_assignment
+                            break
+
+                    # Lưu lại file
+                    if self.save_to_file(self.data_files['assignments'], assignments, 'w'):
+                        print(f"\n✅ Đã lưu điểm cho {graded_count} bài nộp!")
+
+                        # Cập nhật điểm tổng kết nếu cần
+                        self.update_course_grades_from_assignment(selected_course, selected_assignment,
+                                                                  graded_submissions + ungraded_submissions)
                     else:
-                        grade_letter = "F"
-
-                    # Tạo/Tạo lại bản ghi điểm
-                    new_grade = {
-                        'grade_id': grade_record.get('grade_id', f'GR{datetime.now().strftime("%Y%m%d%H%M%S")}'),
-                        'student_id': student_id,
-                        'course_id': course_id,
-                        'semester': selected_course.get('semester', 'Spring'),
-                        'year': selected_course.get('year', 2024),
-                        'lecturer_id': lecturer_id,
-                        'attendance': attendance,
-                        'midterm': midterm,
-                        'final': final,
-                        'total': total,
-                        'grade_letter': grade_letter,
-                        'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    }
-
-                    # Xóa bản ghi cũ nếu có
-                    all_grades = [g for g in all_grades
-                                if not (g.get('student_id') == student_id and g.get('course_id') == course_id)]
-
-                    # Thêm bản ghi mới
-                    all_grades.append(new_grade)
-
-                except ValueError:
-                    print("  ✗ Giá trị không hợp lệ! Bỏ qua sinh viên này.")
-                    continue
-
-            # Lưu tất cả điểm
-            if self.save_to_file(self.data_files['grades'], all_grades, 'w'):
-                print(f"\n✓ Đã lưu điểm cho {len(course_students)} sinh viên!")
+                        print("\n❌ Lỗi khi lưu điểm!")
             else:
-                print("\n✗ Lỗi khi lưu điểm!")
+                print("\nℹ️ Tất cả bài nộp đã được chấm điểm!")
+
+                # Hiển thị điểm đã chấm
+                if graded_submissions:
+                    print("\n📊 ĐIỂM ĐÃ CHẤM:")
+                    print("-" * 80)
+                    print(f"{'STT':<5} {'Mã SV':<10} {'Tên SV':<25} {'Điểm':<10} {'Nhận xét':<30}")
+                    print("-" * 80)
+
+                    for i, sub in enumerate(graded_submissions, 1):
+                        student_id = sub.get('student_id', 'N/A')
+
+                        # Lấy thông tin sinh viên
+                        students = self.read_file(self.data_files['student'])
+                        student = next((s for s in students if s.get('username') == student_id), None)
+                        student_name = f"{student.get('firstname', '')} {student.get('lastname', '')}" if student else 'N/A'
+
+                        score = sub.get('score', 0)
+                        feedback = sub.get('feedback', 'Không có nhận xét')
+
+                        print(f"{i:<5} {student_id:<10} {student_name[:23]:<25} {score:<10} {feedback[:28]:<30}")
+
+            # 8. Tùy chọn sửa điểm
+            if graded_submissions:
+                edit_choice = input("\n👉 Bạn có muốn sửa điểm nào không? (y/n): ").strip().lower()
+
+                if edit_choice == 'y':
+                    self.edit_assignment_grades(selected_assignment, graded_submissions)
 
         except ValueError:
-            print("\nVui lòng nhập số!")
+            print("\n❌ Vui lòng nhập số hợp lệ!")
         except Exception as e:
-            print(f"\nLỗi: {e}")
+            print(f"\n❌ Đã xảy ra lỗi: {e}")
 
         input("\nNhấn Enter để tiếp tục...")
+
+    def update_course_grades_from_assignment(self, course, assignment, submissions):
+        """Cập nhật điểm tổng kết từ điểm bài tập"""
+        try:
+            course_id = course.get('course_id')
+            assignment_max_points = assignment.get('max_points', 100.0)
+            assignment_weight = 0.1  # Trọng số bài tập (có thể điều chỉnh)
+
+            # Lấy danh sách điểm hiện tại
+            all_grades = self.read_file(self.data_files['grades'])
+
+            for sub in submissions:
+                if sub.get('score') is not None:  # Chỉ cập nhật nếu đã có điểm
+                    student_id = sub.get('student_id')
+                    score = sub.get('score', 0)
+
+                    # Tính điểm chuẩn hóa (0-100)
+                    normalized_score = (score / assignment_max_points) * 100
+
+                    # Tìm bản ghi điểm của sinh viên trong môn học
+                    student_grade = None
+                    for grade in all_grades:
+                        if grade.get('student_id') == student_id and grade.get('course_id') == course_id:
+                            student_grade = grade
+                            break
+
+                    # Nếu chưa có bản ghi, tạo mới
+                    if not student_grade:
+                        student_grade = {
+                            'grade_id': f'GR_{student_id}_{course_id}_{datetime.now().strftime("%Y%m%d%H%M%S")}',
+                            'student_id': student_id,
+                            'course_id': course_id,
+                            'semester': course.get('semester', 'Spring'),
+                            'year': course.get('year', 2024),
+                            'lecturer_id': course.get('lecturer_id'),
+                            'assignment_scores': [],
+                            'total': 0,
+                            'grade_letter': 'N/A',
+                            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                        all_grades.append(student_grade)
+
+                    # Cập nhật điểm bài tập
+                    if 'assignment_scores' not in student_grade:
+                        student_grade['assignment_scores'] = []
+
+                    # Thêm hoặc cập nhật điểm bài tập
+                    assignment_found = False
+                    for i, asgn in enumerate(student_grade['assignment_scores']):
+                        if asgn.get('assignment_id') == assignment.get('assignment_id'):
+                            student_grade['assignment_scores'][i]['score'] = normalized_score
+                            assignment_found = True
+                            break
+
+                    if not assignment_found:
+                        student_grade['assignment_scores'].append({
+                            'assignment_id': assignment.get('assignment_id'),
+                            'title': assignment.get('title'),
+                            'score': normalized_score,
+                            'max_points': 100.0,
+                            'weight': assignment_weight
+                        })
+
+                    # Tính lại điểm tổng kết
+                    self.calculate_final_grade(student_grade)
+
+            # Lưu điểm
+            self.save_to_file(self.data_files['grades'], all_grades, 'w')
+
+        except Exception as e:
+            print(f"\n⚠️ Lỗi khi cập nhật điểm tổng kết: {e}")
+
+    def calculate_final_grade(self, grade_record):
+        """Tính điểm tổng kết từ các thành phần"""
+        try:
+            total_score = 0
+            total_weight = 0
+
+            # Tính điểm từ bài tập
+            if 'assignment_scores' in grade_record:
+                for assignment in grade_record['assignment_scores']:
+                    weight = assignment.get('weight', 0.1)
+                    score = assignment.get('score', 0)
+                    total_score += score * weight
+                    total_weight += weight
+
+            # Thêm các thành phần khác nếu có
+            if 'attendance' in grade_record:
+                total_score += grade_record['attendance'] * 0.1  # 10% chuyên cần
+                total_weight += 0.1
+            if 'midterm' in grade_record:
+                total_score += grade_record['midterm'] * 0.3  # 30% giữa kỳ
+                total_weight += 0.3
+            if 'final' in grade_record:
+                total_score += grade_record['final'] * 0.6  # 60% cuối kỳ
+                total_weight += 0.6
+
+            # Nếu tổng trọng số khác 1, chuẩn hóa
+            if total_weight > 0:
+                grade_record['total'] = total_score / total_weight
+            else:
+                grade_record['total'] = 0
+
+            # Xác định điểm chữ
+            total = grade_record['total']
+            if total >= 90:
+                grade_letter = "A"
+            elif total >= 80:
+                grade_letter = "B"
+            elif total >= 70:
+                grade_letter = "C"
+            elif total >= 60:
+                grade_letter = "D"
+            else:
+                grade_letter = "F"
+
+            grade_record['grade_letter'] = grade_letter
+
+        except Exception as e:
+            print(f"\n⚠️ Lỗi khi tính điểm: {e}")
+
+    def edit_assignment_grades(self, assignment, graded_submissions):
+        """Sửa điểm bài tập đã chấm"""
+        try:
+            print("\n" + "=" * 60)
+            print("     SỬA ĐIỂM BÀI TẬP")
+            print("=" * 60)
+
+            max_points = assignment.get('max_points', 100.0)
+
+            while True:
+                print("\n📋 DANH SÁCH BÀI ĐÃ CHẤM:")
+                print("-" * 80)
+                print(f"{'STT':<5} {'Mã SV':<10} {'Tên SV':<25} {'Điểm':<10} {'Nhận xét':<30}")
+                print("-" * 80)
+
+                for i, sub in enumerate(graded_submissions, 1):
+                    student_id = sub.get('student_id', 'N/A')
+
+                    # Lấy thông tin sinh viên
+                    students = self.read_file(self.data_files['student'])
+                    student = next((s for s in students if s.get('username') == student_id), None)
+                    student_name = f"{student.get('firstname', '')} {student.get('lastname', '')}" if student else 'N/A'
+
+                    score = sub.get('score', 0)
+                    feedback = sub.get('feedback', 'Không có nhận xét')
+
+                    print(f"{i:<5} {student_id:<10} {student_name[:23]:<25} {score:<10} {feedback[:28]:<30}")
+
+                try:
+                    edit_choice = input("\n👉 Chọn bài cần sửa (nhập số, hoặc 0 để thoát): ").strip()
+
+                    if edit_choice == '0':
+                        print("\nĐã thoát chế độ sửa điểm.")
+                        break
+
+                    sub_idx = int(edit_choice) - 1
+
+                    if sub_idx < 0 or sub_idx >= len(graded_submissions):
+                        print("\n❌ Lựa chọn không hợp lệ!")
+                        continue
+
+                    selected_sub = graded_submissions[sub_idx]
+                    student_id = selected_sub.get('student_id')
+
+                    # Lấy thông tin sinh viên
+                    students = self.read_file(self.data_files['student'])
+                    student = next((s for s in students if s.get('username') == student_id), None)
+                    student_name = f"{student.get('firstname', '')} {student.get('lastname', '')}" if student else 'N/A'
+
+                    print(f"\n📌 Sửa điểm cho: {student_name} ({student_id})")
+                    print(f"Điểm hiện tại: {selected_sub.get('score')}/{max_points}")
+                    print(f"Nhận xét hiện tại: {selected_sub.get('feedback', 'Không có')}")
+                    print("-" * 40)
+
+                    while True:
+                        try:
+                            new_score_input = input(f"Nhập điểm mới (0-{max_points}): ").strip()
+                            new_score = float(new_score_input)
+
+                            if new_score < 0 or new_score > max_points:
+                                print(f"❌ Điểm phải từ 0 đến {max_points}!")
+                                continue
+
+                            new_feedback = input("Nhận xét mới (không bắt buộc): ").strip()
+
+                            # Cập nhật điểm
+                            selected_sub['score'] = new_score
+                            selected_sub['feedback'] = new_feedback if new_feedback else selected_sub.get('feedback',
+                                                                                                          '')
+                            selected_sub['graded_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                            print(f"✅ Đã cập nhật điểm cho {student_name}: {new_score}/{max_points}")
+
+                            # Cập nhật file
+                            assignments = self.read_file(self.data_files['assignments'])
+                            for i, a in enumerate(assignments):
+                                if a.get('assignment_id') == assignment.get('assignment_id'):
+                                    assignments[i] = assignment
+                                    break
+
+                            self.save_to_file(self.data_files['assignments'], assignments, 'w')
+                            break
+
+                        except ValueError:
+                            print("❌ Vui lòng nhập số hợp lệ!")
+
+                except ValueError:
+                    print("\n❌ Vui lòng nhập số hợp lệ!")
+
+        except Exception as e:
+            print(f"\n❌ Lỗi khi sửa điểm: {e}")
 
     # ========== TẠO BÀI TẬP (GIẢNG VIÊN) ==========
 
     def create_assignment(self):
         """Giảng viên tạo bài tập mới"""
         self.clear_screen()
-        print("\n" + "="*50)
+        print("\n" + "=" * 60)
         print("     TẠO BÀI TẬP MỚI")
-        print("="*50)
+        print("=" * 60)
 
         lecturer_id = self.current_user.get('username', '')
+        lecturer_name = f"{self.current_user.get('firstname', '')} {self.current_user.get('lastname', '')}"
+
+        print(f"\n👨‍🏫 Giảng viên: {lecturer_name}")
+        print("-" * 60)
 
         # Lấy môn học của giảng viên
         courses = self.read_file(self.data_files['courses'])
         my_courses = [c for c in courses if c.get('lecturer_id') == lecturer_id]
 
         if not my_courses:
-            print("\nBạn chưa được phân công giảng dạy môn nào!")
-            input("\nNhấn Enter để tiếp tục...")
+            print("\n❌ Bạn chưa được phân công giảng dạy môn nào!")
+            input("\nNhấn Enter để quay lại...")
             return
 
-        print("\nChọn môn học để tạo bài tập:")
+        print("\n📚 Danh sách môn học bạn đang giảng dạy:")
+        print("-" * 70)
+        print(f"{'STT':<5} {'Mã môn':<10} {'Tên môn học':<30} {'Số SV':<8} {'Học kỳ':<10}")
+        print("-" * 70)
+
         for i, course in enumerate(my_courses, 1):
-            print(f"{i}. {course.get('course_code')} - {course.get('course_name')}")
+            course_code = course.get('course_code', 'N/A')
+            course_name = course.get('course_name', 'N/A')
+            student_count = len(course.get('enrolled_students', []))
+            semester = course.get('semester', 'N/A')
+
+            print(f"{i:<5} {course_code:<10} {course_name:<30} {student_count:<8} {semester:<10}")
 
         try:
-            course_choice = int(input("\nChọn môn học (số): ").strip()) - 1
-            if course_choice < 0 or course_choice >= len(my_courses):
-                print("\nLựa chọn không hợp lệ!")
-                input("\nNhấn Enter để tiếp tục...")
+            course_choice = input("\n👉 Chọn môn học (nhập số, hoặc 0 để hủy): ").strip()
+
+            if course_choice == '0':
+                print("\nĐã hủy thao tác tạo bài tập.")
+                input("\nNhấn Enter để quay lại...")
                 return
 
-            selected_course = my_courses[course_choice]
+            course_idx = int(course_choice) - 1
+
+            if course_idx < 0 or course_idx >= len(my_courses):
+                print("\n❌ Lựa chọn không hợp lệ!")
+                input("\nNhấn Enter để quay lại...")
+                return
+
+            selected_course = my_courses[course_idx]
             course_id = selected_course.get('course_id')
+            course_name = selected_course.get('course_name', 'N/A')
 
-            print(f"\nTạo bài tập cho môn: {selected_course.get('course_name')}")
-            print("-"*50)
+            print(f"\n✅ Đã chọn môn: {course_name}")
+            print("-" * 60)
 
-            assignment_name = input("\nTên bài tập: ").strip()
-            if not assignment_name:
-                print("\n✗ Tên bài tập không được để trống!")
-                input("\nNhấn Enter để tiếp tục...")
-                return
+            # 1. Nhập thông tin bài tập
+            print("\n📝 NHẬP THÔNG TIN BÀI TẬP")
+            print("-" * 40)
 
-            description = input("Mô tả bài tập: ").strip()
-
-            # Nhập deadline
+            # Tiêu đề bài tập
             while True:
-                deadline = input("Hạn nộp (YYYY-MM-DD): ").strip()
+                title = input("\n1. Tiêu đề bài tập: ").strip()
+                if title:
+                    break
+                print("❌ Tiêu đề không được để trống!")
+
+            # Loại bài tập
+            print("\n📋 Loại bài tập:")
+            print("   1. Homework - Bài tập về nhà")
+            print("   2. Project - Đồ án")
+            print("   3. Quiz - Bài kiểm tra nhỏ")
+            print("   4. Exam - Bài thi")
+
+            type_choice = input("\nChọn loại bài tập (1-4, mặc định: 1): ").strip() or "1"
+            type_map = {
+                '1': 'homework',
+                '2': 'project',
+                '3': 'quiz',
+                '4': 'exam'
+            }
+            assignment_type = type_map.get(type_choice, 'homework')
+
+            # Mô tả bài tập
+            print("\n📄 Mô tả bài tập (nhập 'END' trên dòng mới để kết thúc):")
+            description_lines = []
+            print("(Bắt đầu nhập nội dung. Gõ 'END' để kết thúc)")
+            while True:
+                line = input()
+                if line.strip().upper() == 'END':
+                    break
+                description_lines.append(line)
+
+            description = '\n'.join(description_lines) if description_lines else "Không có mô tả"
+
+            # Điểm tối đa
+            while True:
                 try:
-                    datetime.strptime(deadline, '%Y-%m-%d')
+                    max_points_input = input("\n2. Điểm tối đa (ví dụ: 10, 100): ").strip()
+                    max_points = float(max_points_input)
+                    if max_points > 0:
+                        break
+                    print("❌ Điểm phải lớn hơn 0!")
+                except ValueError:
+                    print("❌ Vui lòng nhập số hợp lệ!")
+
+            # Hạn nộp
+            print("\n⏰ THIẾT LẬP HẠN NỘP")
+            print("-" * 40)
+
+            today = datetime.now().date()
+            print(f"\nNgày hôm nay: {today.strftime('%d/%m/%Y')}")
+
+            while True:
+                due_date_input = input("\nHạn nộp (dd/mm/yyyy): ").strip()
+
+                if not due_date_input:
+                    print("❌ Vui lòng nhập hạn nộp!")
+                    continue
+
+                try:
+                    due_date = datetime.strptime(due_date_input, '%d/%m/%Y').date()
+                    if due_date < today:
+                        print("❌ Hạn nộp không thể trước ngày hôm nay!")
+                        continue
                     break
                 except ValueError:
-                    print("Định dạng ngày không hợp lệ! Vui lòng nhập đúng định dạng YYYY-MM-DD")
+                    print("❌ Định dạng ngày không hợp lệ! Vui lòng nhập dd/mm/yyyy")
 
-            try:
-                max_score = float(input("Điểm tối đa (default: 100): ").strip() or "100")
-            except ValueError:
-                print("\n✗ Điểm phải là số!")
-                input("\nNhấn Enter để tiếp tục...")
+            # Chuyển đổi định dạng ngày cho lưu trữ
+            due_date_str = due_date.strftime('%Y-%m-%d')
+            due_date_display = due_date.strftime('%d/%m/%Y')
+
+            # Xác nhận thông tin
+            print("\n" + "=" * 60)
+            print("     XÁC NHẬN THÔNG TIN")
+            print("=" * 60)
+
+            print(f"\n📋 THÔNG TIN BÀI TẬP:")
+            print(f"  • Môn học: {course_name}")
+            print(f"  • Tiêu đề: {title}")
+            print(f"  • Loại bài tập: {assignment_type}")
+            print(f"  • Điểm tối đa: {max_points}")
+            print(f"  • Hạn nộp: {due_date_display}")
+
+            print(f"\n📄 MÔ TẢ:")
+            print("-" * 40)
+            print(description[:200] + ("..." if len(description) > 200 else ""))
+
+            # Hiển thị số sinh viên sẽ nhận bài tập
+            enrolled_students = selected_course.get('enrolled_students', [])
+            print(f"\n👥 Bài tập sẽ được giao cho: {len(enrolled_students)} sinh viên")
+
+            confirm = input("\n✅ Bạn có chắc chắn muốn tạo bài tập này? (y/n): ").strip().lower()
+
+            if confirm != 'y':
+                print("\nĐã hủy thao tác tạo bài tập.")
+                input("\nNhấn Enter để quay lại...")
                 return
 
-            assignment_type = input("Loại bài tập (Bài tập/Báo cáo/Đồ án/Khác): ").strip() or "Bài tập"
+            # Tạo ID duy nhất cho bài tập
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            assignment_id = f"ASS_{course_id}_{timestamp}"
 
-            # Tạo ID cho bài tập
-            assignment_id = f"ASS{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
+            # Tạo dữ liệu bài tập theo đúng cấu trúc
             assignment_data = {
                 'assignment_id': assignment_id,
                 'course_id': course_id,
-                'assignment_name': assignment_name,
+                'title': title,
                 'description': description,
-                'deadline': deadline,
-                'max_score': max_score,
-                'type': assignment_type,
+                'assignment_type': assignment_type,
+                'max_points': max_points,
+                'due_date': due_date_str,  # Lưu theo định dạng YYYY-MM-DD
                 'created_by': lecturer_id,
-                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'submissions': []
+                'submissions': [],  # Ban đầu chưa có ai nộp
+                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
 
-            # Lưu bài tập
+            # Lưu bài tập vào file
             all_assignments = self.read_file(self.data_files['assignments'])
             all_assignments.append(assignment_data)
 
             if self.save_to_file(self.data_files['assignments'], all_assignments, 'w'):
-                print(f"\n✓ Đã tạo bài tập '{assignment_name}' thành công!")
-                print(f"  Mã bài tập: {assignment_id}")
-                print(f"  Hạn nộp: {deadline}")
-                print(f"  Điểm tối đa: {max_score}")
+                print("\n" + "=" * 60)
+                print("     TẠO BÀI TẬP THÀNH CÔNG!")
+                print("=" * 60)
+
+                print(f"\n✅ Đã tạo bài tập: {title}")
+                print(f"📌 Mã bài tập: {assignment_id}")
+                print(f"📚 Môn học: {course_name}")
+                print(f"🎯 Loại: {assignment_type}")
+                print(f"⭐ Điểm tối đa: {max_points}")
+                print(f"⏰ Hạn nộp: {due_date_display}")
+
+                # Hiển thị thông tin bổ sung
+                print(f"\n📊 THÔNG TIN BỔ SUNG:")
+                print(f"  • Số sinh viên sẽ nhận bài tập: {len(enrolled_students)}")
+                print(f"  • Bài tập sẽ được hiển thị cho sinh viên ngay lập tức")
+
             else:
-                print("\n✗ Lỗi khi lưu bài tập!")
+                print("\n❌ Lỗi khi lưu bài tập! Vui lòng thử lại.")
 
         except ValueError:
-            print("\nVui lòng nhập số hợp lệ!")
+            print("\n❌ Vui lòng nhập số hợp lệ!")
+        except Exception as e:
+            print(f"\n❌ Đã xảy ra lỗi: {e}")
 
         input("\nNhấn Enter để tiếp tục...")
 
